@@ -1,3 +1,10 @@
+## 0.19.0 Unreleased
+
+IMPROVEMENTS:
+
+* Add TransactionLineItemGateway, TransactionLineItem, TransactionLineItemRequest.
+* Add LineItems to TransactionRequest.
+
 ## 0.18.0 (March 2nd, 2018)
 
 BACKWARDS INCOMPATIBILITES:
