@@ -350,3 +350,62 @@ func TestTransactionWithLineItemsMultiple(t *testing.T) {
 		}
 	}
 }
+
+func TestTransactionWithLineItemsCommodityCodeTooLong(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	_, err := testGateway.Transaction().Create(ctx, &TransactionRequest{
+		Type:               "sale",
+		Amount:             NewDecimal(1423, 2),
+		PaymentMethodNonce: FakeNonceTransactable,
+		LineItems: TransactionLineItemRequests{
+			&TransactionLineItemRequest{
+				Name:           "Name #1",
+				Description:    "Description #1",
+				Kind:           TransactionLineItemKindDebit,
+				Quantity:       NewDecimal(10232, 4),
+				UnitAmount:     NewDecimal(451232, 4),
+				UnitTaxAmount:  NewDecimal(123, 2),
+				UnitOfMeasure:  "gallon",
+				TotalAmount:    NewDecimal(4515, 2),
+				TaxAmount:      NewDecimal(455, 2),
+				DiscountAmount: NewDecimal(102, 2),
+				ProductCode:    "23434",
+				CommodityCode:  "9SAASSD8724",
+				URL:            "https://example.com/products/23434",
+			},
+			&TransactionLineItemRequest{
+				Name:           "Name #2",
+				Description:    "Description #2",
+				Kind:           TransactionLineItemKindDebit,
+				Quantity:       NewDecimal(10232, 4),
+				UnitAmount:     NewDecimal(451232, 4),
+				UnitTaxAmount:  NewDecimal(123, 2),
+				UnitOfMeasure:  "gallon",
+				TotalAmount:    NewDecimal(4515, 2),
+				TaxAmount:      NewDecimal(455, 2),
+				DiscountAmount: NewDecimal(102, 2),
+				ProductCode:    "23434",
+				CommodityCode:  "0123456789123",
+				URL:            "https://example.com/products/23434",
+			},
+		},
+	})
+
+	if err == nil {
+		t.Fatal("Transaction Sale got no error, want error")
+	}
+	t.Logf("%#v", err.(*BraintreeError).Errors.TransactionErrors.For("line-items"))
+	errors := err.(*BraintreeError).Errors.TransactionErrors.For("line-items").For("index-1").On("commodity_code")
+	if len(errors) != 1 {
+		t.Fatalf("Transaction Sale got %d errors, want 1 error", len(errors))
+	}
+	if g, w := errors[0].Code, "95801"; g != w {
+		t.Errorf("Transaction Sale got error code %s, want %s", g, w)
+	}
+	if g, w := errors[0].Message, "Commodity code is too long."; g != w {
+		t.Errorf("Transaction Sale got error message %s, want %s", g, w)
+	}
+}
